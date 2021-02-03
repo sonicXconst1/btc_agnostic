@@ -63,10 +63,16 @@ where
             Ok(page
                 .prices
                 .into_iter()
-                .map(|price| agnostic::order::Order {
-                    coins: coins.clone(),
-                    price: price.rate,
-                    amount: price.amount,
+                .map(|price| {
+                    let rate = match side {
+                        btc_sdk::base::Side::Buy => price.rate,
+                        btc_sdk::base::Side::Sell => 1.0 / price.rate,
+                    };
+                    agnostic::order::Order {
+                        coins: coins.clone(),
+                        price: rate,
+                        amount: price.amount,
+                    }
                 })
                 .collect())
         };
