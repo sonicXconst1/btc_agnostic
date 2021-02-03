@@ -65,8 +65,8 @@ where
                 .into_iter()
                 .map(|price| {
                     let rate = match side {
-                        btc_sdk::base::Side::Buy => price.rate,
-                        btc_sdk::base::Side::Sell => 1.0 / price.rate,
+                        btc_sdk::base::Side::Sell => price.rate,
+                        btc_sdk::base::Side::Buy => 1.0 / price.rate,
                     };
                     agnostic::order::Order {
                         coins: coins.clone(),
