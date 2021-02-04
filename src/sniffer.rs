@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use crate::SymbolResult;
 use crate::SideResult;
 
@@ -6,6 +7,7 @@ where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static,
 {
     client: std::sync::Arc<btc_sdk::public_client::PublicClient<TConnector>>,
+    private_client: std::sync::Arc<btc_sdk::client::BTCClient<TConnector>>,
 }
 
 impl<TConnector> Sniffer<TConnector>
@@ -14,8 +16,12 @@ where
 {
     pub fn new(
         client: std::sync::Arc<btc_sdk::public_client::PublicClient<TConnector>>,
+        private_client: std::sync::Arc<btc_sdk::client::BTCClient<TConnector>>,
     ) -> Sniffer<TConnector> {
-        Sniffer { client }
+        Sniffer {
+            client,
+            private_client
+        }
     }
 }
 
@@ -94,6 +100,47 @@ where
                     None => Err("Failed to get the first order from orders.".to_owned()),
                 },
                 Err(error) => Err(error),
+            }
+        };
+        Box::pin(future)
+    }
+
+    fn get_my_orders(
+        &self,
+        coins: agnostic::coin::CoinPair
+    ) -> agnostic::market::Future<Result<Vec<agnostic::order::Order>, String>> {
+        let client = self.private_client.clone();
+        let future = async move {
+            let symbol = match SymbolResult::from(&coins) {
+                SymbolResult(Ok(symbol)) => symbol,
+                SymbolResult(Err(error)) => {
+                    log::error!("{}", error);
+                    return Err(error);
+                }
+            };
+            let side = match SideResult::from(&coins) {
+                SideResult(Ok(side)) => side,
+                SideResult(Err(error)) => {
+                    log::error!("{}", error);
+                    return Err(error);
+                }
+            };
+            match client.get_active_orders(Some(symbol)).await {
+                Some(orders) => Ok(orders.into_iter()
+                    .map(|order| {
+                        let price = f64::from_str(&order.price).unwrap();
+                        let rate = match side {
+                            btc_sdk::base::Side::Sell => price,
+                            btc_sdk::base::Side::Buy => 1.0 / price,
+                        };
+                        agnostic::order::Order {
+                            coins: coins.clone(),
+                            price: rate,
+                            amount: f64::from_str(&order.quantity).unwrap(),
+                        }
+                    })
+                    .collect()),
+                None => Err("Failed to get active orders".to_owned()),
             }
         };
         Box::pin(future)

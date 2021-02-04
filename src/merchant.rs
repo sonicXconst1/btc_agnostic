@@ -47,6 +47,8 @@ where
     }
 
     fn sniffer(&self) -> Self::Sniffer {
-        crate::sniffer::Sniffer::new(self.public_client.clone())
+        crate::sniffer::Sniffer::new(
+            self.public_client.clone(),
+            self.private_client.clone())
     }
 }
