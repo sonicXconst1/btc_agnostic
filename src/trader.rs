@@ -50,11 +50,11 @@ where
         Box::pin(future)
     }
 
-    fn update_order(
+    fn delete_and_create(
         &self,
         id: &str,
         new_order: agnostic::order::Order,
-    ) -> agnostic::market::Future<Result<(), String>> {
+    ) -> agnostic::market::Future<Result<String, String>> {
         let client = self.private_client.clone();
         let id = id.to_owned();
         let future = async move {
@@ -77,7 +77,7 @@ where
                     match client.create_limit_order(order).await {
                         Some(order) => {
                             log::debug!("Limit Order created: {:#?}", order);
-                            Ok(())
+                            Ok(format!("{}", order.id))
                         },
                         None => Err("Failed to create limit order!".to_owned()),
                     }
