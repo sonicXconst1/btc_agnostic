@@ -1,3 +1,6 @@
+use crate::SymbolResult;
+use crate::SideResult;
+
 pub struct Sniffer<TConnector>
 where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static,
@@ -27,16 +30,16 @@ where
     ) -> agnostic::market::Future<Result<Vec<agnostic::order::Order>, String>> {
         let client = self.client.clone();
         let future = async move {
-            let symbol = match crate::SymbolResult::from(&coins) {
-                crate::SymbolResult(Ok(symbol)) => symbol,
-                crate::SymbolResult(Err(error)) => {
+            let symbol = match SymbolResult::from(&coins) {
+                SymbolResult(Ok(symbol)) => symbol,
+                SymbolResult(Err(error)) => {
                     log::error!("{}", error);
                     return Err(error);
                 }
             };
-            let side = match crate::SideResult::from(&coins) {
-                crate::SideResult(Ok(side)) => side,
-                crate::SideResult(Err(error)) => {
+            let side = match SideResult::from(&coins) {
+                SideResult(Ok(side)) => side,
+                SideResult(Err(error)) => {
                     log::error!("{}", error);
                     return Err(error);
                 }
