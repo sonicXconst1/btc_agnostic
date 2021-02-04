@@ -108,7 +108,7 @@ where
     fn get_my_orders(
         &self,
         coins: agnostic::coin::CoinPair
-    ) -> agnostic::market::Future<Result<Vec<agnostic::order::Order>, String>> {
+    ) -> agnostic::market::Future<Result<Vec<agnostic::order::OrderWithId>, String>> {
         let client = self.private_client.clone();
         let future = async move {
             let symbol = match SymbolResult::from(&coins) {
@@ -133,7 +133,8 @@ where
                             btc_sdk::base::Side::Sell => price,
                             btc_sdk::base::Side::Buy => 1.0 / price,
                         };
-                        agnostic::order::Order {
+                        agnostic::order::OrderWithId {
+                            id: order.client_order_id,
                             coins: coins.clone(),
                             price: rate,
                             amount: f64::from_str(&order.quantity).unwrap(),
