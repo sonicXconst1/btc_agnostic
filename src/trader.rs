@@ -34,11 +34,11 @@ where
                 SideResult(Ok(side)) => side,
                 SideResult(Err(error)) => return Err(error),
             };
-            let amount = order.price * order.amount;
             let price = match side {
                 btc_sdk::base::Side::Sell => order.price,
                 btc_sdk::base::Side::Buy => 1f64 / order.price,
             };
+            let amount = price * order.amount;
             let order = btc_sdk::models::typed::CreateLimitOrder::new(
                 symbol,
                 side,
