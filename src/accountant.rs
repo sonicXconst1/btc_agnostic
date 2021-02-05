@@ -93,4 +93,23 @@ where
     fn calculate_volume(&self, _coins: agnostic::coin::CoinPair, price: f64, amount: f64) -> f64 {
         price * amount
     }
+
+    fn nearest_price(&self, coins: agnostic::coin::CoinPair, price: f64) -> f64 {
+        match crate::SideResult::from(&coins) {
+            crate::SideResult(Ok(side)) => {
+                match side {
+                    btc_sdk::base::Side::Sell => {
+                        price - 0.0001
+                    },
+                    btc_sdk::base::Side::Buy => {
+                        price + 0.0001
+                    },
+                }
+            },
+            crate::SideResult(Err(error)) => {
+                log::error!("{}", error);
+                price
+            }
+        }
+    }
 }
