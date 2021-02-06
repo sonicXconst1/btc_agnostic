@@ -38,7 +38,7 @@ where
                 btc_sdk::base::Side::Sell => order.price,
                 btc_sdk::base::Side::Buy => 1f64 / order.price,
             };
-            let amount = (price * order.amount) - 0.001;
+            let amount = (order.price * order.amount) - 0.001;
             let order = btc_sdk::models::typed::CreateLimitOrder::new(
                 symbol,
                 side,
@@ -74,7 +74,7 @@ where
                         SideResult(Ok(side)) => side,
                         SideResult(Err(error)) => return Err(error),
                     };
-                    let amount = new_order.price * new_order.amount;
+                    let amount = (new_order.price * new_order.amount) - 0.001;
                     let price = match side {
                         btc_sdk::base::Side::Sell => new_order.price,
                         btc_sdk::base::Side::Buy => 1f64 / new_order.price,
