@@ -77,7 +77,10 @@ where
                         SideResult(Ok(side)) => side,
                         SideResult(Err(error)) => return Err(error),
                     };
-                    let amount = (new_order.price * new_order.amount) - 0.001;
+                    let amount = match side {
+                        btc_sdk::base::Side::Buy => (new_order.price * new_order.amount) - 0.001,
+                        btc_sdk::base::Side::Sell => new_order.amount - 0.001,
+                    };
                     let price = match side {
                         btc_sdk::base::Side::Sell => new_order.price,
                         btc_sdk::base::Side::Buy => 1f64 / new_order.price,
