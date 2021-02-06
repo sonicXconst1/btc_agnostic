@@ -127,18 +127,27 @@ where
             };
             match client.get_active_orders(Some(symbol)).await {
                 Some(orders) => Ok(orders.into_iter()
-                    .map(|order| {
+                    .filter_map(|order| {
+                        let sell_string = "sell".to_owned();
+                        let order_side = if sell_string == order.side {
+                            btc_sdk::base::Side::Sell
+                        } else {
+                            btc_sdk::base::Side::Buy
+                        };
+                        if order_side != side {
+                            return None;
+                        }
                         let price = f64::from_str(&order.price).unwrap();
                         let rate = match side {
                             btc_sdk::base::Side::Sell => price,
                             btc_sdk::base::Side::Buy => 1.0 / price,
                         };
-                        agnostic::order::OrderWithId {
+                        Some(agnostic::order::OrderWithId {
                             id: order.client_order_id,
                             coins: coins.clone(),
                             price: rate,
                             amount: f64::from_str(&order.quantity).unwrap(),
-                        }
+                        })
                     })
                     .collect()),
                 None => Err("Failed to get active orders".to_owned()),
