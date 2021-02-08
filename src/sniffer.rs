@@ -1,6 +1,7 @@
 use std::str::FromStr;
-use crate::SymbolResult;
-use crate::SideResult;
+use crate::from_agnostic_side;
+use agnostic::trading_pair::TradingPair;
+use agnostic::trading_pair::TradingPairConverter;
 
 pub struct Sniffer<TConnector>
 where
@@ -31,25 +32,14 @@ where
 {
     fn all_the_best_orders(
         &self,
-        coins: agnostic::coin::CoinPair,
+        trading_pair: TradingPair,
         count: u32,
     ) -> agnostic::market::Future<Result<Vec<agnostic::order::Order>, String>> {
         let client = self.client.clone();
         let future = async move {
-            let symbol = match SymbolResult::from(&coins) {
-                SymbolResult(Ok(symbol)) => symbol,
-                SymbolResult(Err(error)) => {
-                    log::error!("{}", error);
-                    return Err(error);
-                }
-            };
-            let side = match SideResult::from(&coins) {
-                SideResult(Ok(side)) => side,
-                SideResult(Err(error)) => {
-                    log::error!("{}", error);
-                    return Err(error);
-                }
-            };
+            let converter = crate::TradingPairConverter::default();
+            let symbol = converter.to_pair(trading_pair.clone());
+            let side = from_agnostic_side(trading_pair.side.clone());
             let orderbook = match client
                 .get_orderbook(Some(count as u64), Some(vec![symbol.clone()]))
                 .await
@@ -73,13 +63,9 @@ where
                 .prices
                 .into_iter()
                 .map(|price| {
-                    let rate = match side {
-                        btc_sdk::base::Side::Sell => price.rate,
-                        btc_sdk::base::Side::Buy => 1.0 / price.rate,
-                    };
                     agnostic::order::Order {
-                        coins: coins.clone(),
-                        price: rate,
+                        trading_pair: trading_pair.clone(),
+                        price: price.rate,
                         amount: price.amount,
                     }
                 })
@@ -90,9 +76,9 @@ where
 
     fn the_best_order(
         &self,
-        coins: agnostic::coin::CoinPair,
+        trading_pair: TradingPair,
     ) -> agnostic::market::Future<Result<agnostic::order::Order, String>> {
-        let future = self.all_the_best_orders(coins, 1u32);
+        let future = self.all_the_best_orders(trading_pair, 1u32);
         let future = async move {
             match future.await {
                 Ok(orders) => match orders.get(0) {
@@ -107,24 +93,13 @@ where
 
     fn get_my_orders(
         &self,
-        coins: agnostic::coin::CoinPair
+        trading_pair: TradingPair,
     ) -> agnostic::market::Future<Result<Vec<agnostic::order::OrderWithId>, String>> {
         let client = self.private_client.clone();
         let future = async move {
-            let symbol = match SymbolResult::from(&coins) {
-                SymbolResult(Ok(symbol)) => symbol,
-                SymbolResult(Err(error)) => {
-                    log::error!("{}", error);
-                    return Err(error);
-                }
-            };
-            let side = match SideResult::from(&coins) {
-                SideResult(Ok(side)) => side,
-                SideResult(Err(error)) => {
-                    log::error!("{}", error);
-                    return Err(error);
-                }
-            };
+            let converter = crate::TradingPairConverter::default();
+            let symbol = converter.to_pair(trading_pair.clone());
+            let side = from_agnostic_side(trading_pair.side.clone());
             match client.get_active_orders(Some(symbol)).await {
                 Some(orders) => Ok(orders.into_iter()
                     .filter_map(|order| {
@@ -137,15 +112,10 @@ where
                         if order_side != side {
                             return None;
                         }
-                        let price = f64::from_str(&order.price).unwrap();
-                        let rate = match side {
-                            btc_sdk::base::Side::Sell => price,
-                            btc_sdk::base::Side::Buy => 1.0 / price,
-                        };
                         Some(agnostic::order::OrderWithId {
                             id: order.client_order_id,
-                            coins: coins.clone(),
-                            price: rate,
+                            trading_pair: trading_pair.clone(),
+                            price: f64::from_str(&order.price).unwrap(),
                             amount: f64::from_str(&order.quantity).unwrap(),
                         })
                     })

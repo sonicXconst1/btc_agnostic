@@ -1,6 +1,11 @@
-pub struct Merchant<TConnector> {
-    private_client: std::sync::Arc<btc_sdk::client::BTCClient<TConnector>>,
-    public_client: std::sync::Arc<btc_sdk::public_client::PublicClient<TConnector>>,
+use std::sync::Arc;
+pub struct Merchant<TConnector> 
+where
+    TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static
+{
+    accountant: Arc<crate::accountant::Accountant<TConnector>>,
+    sniffer: Arc<crate::sniffer::Sniffer<TConnector>>,
+    trader: Arc<crate::trader::Trader<TConnector>>,
 }
 
 impl<TConnector> Merchant<TConnector> 
@@ -23,9 +28,15 @@ where
         let public_client = std::sync::Arc::new(btc_sdk::public_client::PublicClient::new(
             client.clone(),
             auth_context.base_url.clone()));
+        let accountant = Arc::new(crate::accountant::Accountant::new(private_client.clone()));
+        let sniffer = Arc::new(crate::sniffer::Sniffer::new(
+                public_client.clone(),
+                private_client.clone()));
+        let trader = Arc::new(crate::trader::Trader::new(private_client.clone()));
         Merchant {
-            private_client,
-            public_client,
+            accountant,
+            sniffer,
+            trader,
         }
     }
 }
@@ -34,21 +45,15 @@ impl<TConnector> agnostic::merchant::Merchant for Merchant<TConnector>
 where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static
 {
-    type Accountant = crate::accountant::Accountant<TConnector>;
-    type Trader = crate::trader::Trader<TConnector>;
-    type Sniffer = crate::sniffer::Sniffer<TConnector>;
-
-    fn accountant(&self) -> Self::Accountant {
-        crate::accountant::Accountant::new(self.private_client.clone())
+    fn accountant(&self) -> std::sync::Arc<dyn agnostic::market::Accountant> {
+        self.accountant.clone()
     }
 
-    fn trader(&self) -> Self::Trader {
-        crate::trader::Trader::new(self.private_client.clone())
+    fn trader(&self) -> std::sync::Arc<dyn agnostic::market::Trader> {
+        self.trader.clone()
     }
 
-    fn sniffer(&self) -> Self::Sniffer {
-        crate::sniffer::Sniffer::new(
-            self.public_client.clone(),
-            self.private_client.clone())
+    fn sniffer(&self) -> std::sync::Arc<dyn agnostic::market::Sniffer> {
+        self.sniffer.clone()
     }
 }
