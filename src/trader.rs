@@ -93,14 +93,25 @@ where
         Box::pin(future)
     }
 
-    fn create_trade_by_id(&self, order_id: &str) -> agnostic::market::Future<Result<(), String>> {
-        todo!()
-    }
-
     fn create_trade_from_order(
         &self,
         order: agnostic::order::Order,
     ) -> agnostic::market::Future<Result<(), String>> {
-        todo!()
+        let client = self.private_client.clone();
+        let future = async move {
+            let converter = crate::TradingPairConverter::default();
+            let order = btc_sdk::models::typed::CreateMarketOrder::new(
+                converter.to_pair(order.trading_pair.clone()),
+                crate::from_agnostic_side(order.trading_pair.side.clone()),
+                order.amount);
+            match client.create_market_order(order).await {
+                Some(order) => {
+                    log::debug!("Order canceled: {:#?}", order);
+                    Ok(())
+                },
+                None => Err("Failed to cancel order by id".to_owned()),
+            }
+        };
+        Box::pin(future)
     }
 }
