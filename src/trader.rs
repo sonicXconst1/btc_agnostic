@@ -28,7 +28,9 @@ where
         let future = async move {
             let converter = crate::TradingPairConverter::default();
             let symbol = converter.to_pair(order.trading_pair.clone());
-            let side = from_agnostic_side(order.trading_pair.side.clone());
+            let side = from_agnostic_side(
+                order.trading_pair.target.clone(),
+                order.trading_pair.side.clone());
             let order = btc_sdk::models::typed::CreateLimitOrder::new(
                 symbol,
                 side,
@@ -58,7 +60,9 @@ where
                     log::debug!("Order canceled: {:#?}", order);
                     let converter = crate::TradingPairConverter::default();
                     let symbol = converter.to_pair(new_order.trading_pair.clone());
-                    let side = from_agnostic_side(new_order.trading_pair.side.clone());
+                    let side = from_agnostic_side(
+                        new_order.trading_pair.target.clone(),
+                        new_order.trading_pair.side.clone());
                     let order = btc_sdk::models::typed::CreateLimitOrder::new(
                         symbol,
                         side,
@@ -102,7 +106,9 @@ where
             let converter = crate::TradingPairConverter::default();
             let order = btc_sdk::models::typed::CreateMarketOrder::new(
                 converter.to_pair(order.trading_pair.clone()),
-                crate::from_agnostic_side(order.trading_pair.side.clone()),
+                crate::from_agnostic_side(
+                    order.trading_pair.target.clone(),
+                    order.trading_pair.side.clone()),
                 order.amount);
             match client.create_market_order(order).await {
                 Some(order) => {

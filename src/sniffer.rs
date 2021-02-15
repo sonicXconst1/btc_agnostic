@@ -39,7 +39,9 @@ where
         let future = async move {
             let converter = crate::TradingPairConverter::default();
             let symbol = converter.to_pair(trading_pair.clone());
-            let side = from_agnostic_side(trading_pair.side.clone());
+            let side = from_agnostic_side(
+                trading_pair.target.clone(),
+                trading_pair.side.clone());
             let orderbook = match client
                 .get_orderbook(Some(count as u64), Some(vec![symbol.clone()]))
                 .await
@@ -99,7 +101,9 @@ where
         let future = async move {
             let converter = crate::TradingPairConverter::default();
             let symbol = converter.to_pair(trading_pair.clone());
-            let side = from_agnostic_side(trading_pair.side.clone());
+            let side = from_agnostic_side(
+                trading_pair.target.clone(),
+                trading_pair.side.clone());
             match client.get_active_orders(Some(symbol)).await {
                 Some(orders) => Ok(orders.into_iter()
                     .filter_map(|order| {

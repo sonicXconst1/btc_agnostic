@@ -36,14 +36,19 @@ impl trading_pair::TradingPairConverter for TradingPairConverter {
         match coin {
             BtcCoin::TON => Some(Coin::TON),
             BtcCoin::USDT => Some(Coin::USDT),
-            any => None,
+            any => {
+                log::debug!("Invalid coin: {:#?}", any);
+                None
+            },
         }
     }
 }
 
-pub fn from_agnostic_side(side: trading_pair::Side) -> btc_sdk::base::Side {
-    match side {
-        trading_pair::Side::Sell => btc_sdk::base::Side::Sell,
-        trading_pair::Side::Buy => btc_sdk::base::Side::Buy,
+pub fn from_agnostic_side(target: trading_pair::Target, side: trading_pair::Side) -> btc_sdk::base::Side {
+    match (target, side) {
+        (trading_pair::Target::Market, trading_pair::Side::Buy) => btc_sdk::base::Side::Buy,
+        (trading_pair::Target::Market, trading_pair::Side::Sell) => btc_sdk::base::Side::Sell,
+        (trading_pair::Target::Limit, trading_pair::Side::Buy) => btc_sdk::base::Side::Sell,
+        (trading_pair::Target::Limit, trading_pair::Side::Sell) => btc_sdk::base::Side::Buy,
     }
 }
