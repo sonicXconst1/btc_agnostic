@@ -106,9 +106,10 @@ where
             let converter = crate::TradingPairConverter::default();
             let order = btc_sdk::models::typed::CreateMarketOrder::new(
                 converter.to_pair(order.trading_pair.clone()),
-                crate::from_agnostic_side(
-                    order.trading_pair.target.clone(),
-                    order.trading_pair.side.clone()),
+                match order.trading_pair.side {
+                    agnostic::trading_pair::Side::Sell => btc_sdk::base::Side::Sell,
+                    agnostic::trading_pair::Side::Buy => btc_sdk::base::Side::Buy,
+                },
                 order.amount);
             match client.create_market_order(order).await {
                 Some(order) => {
