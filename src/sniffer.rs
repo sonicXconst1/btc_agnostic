@@ -72,23 +72,6 @@ where
         Box::pin(future)
     }
 
-    fn the_best_order(
-        &self,
-        trading_pair: TradingPair,
-    ) -> agnostic::market::Future<Result<agnostic::order::Order, String>> {
-        let future = self.all_the_best_orders(trading_pair, 1u32);
-        let future = async move {
-            match future.await {
-                Ok(orders) => match orders.get(0) {
-                    Some(order) => Ok(order.clone()),
-                    None => Err("Failed to get the first order from orders.".to_owned()),
-                },
-                Err(error) => Err(error),
-            }
-        };
-        Box::pin(future)
-    }
-
     fn get_my_orders(
         &self,
         trading_pair: TradingPair,
