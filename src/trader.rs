@@ -44,11 +44,18 @@ where
                             agnostic::trading_pair::Side::Buy => btc_sdk::base::Side::Buy,
                         },
                         order.amount);
+                    use std::str::FromStr;
                     match client.create_market_order(order).await {
                         Some(order) => Ok(Trade::Market(TradeResult{
                             id: order.id.to_string(),
                             trading_pair,
-                            price,
+                            price: match order.price{
+                                Some(trade_price) => match f64::from_str(&trade_price) {
+                                    Ok(price) => price,
+                                    Err(_) => price,
+                                },
+                                None => price,
+                            },
                             amount,
                         })),
                         None => Err("Failed to cancel order by id".to_owned()),
