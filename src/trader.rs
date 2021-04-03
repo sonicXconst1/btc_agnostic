@@ -45,21 +45,19 @@ where
                         },
                         order.amount);
                     use std::str::FromStr;
-                    match client.create_market_order(order).await {
-                        Some(order) => Ok(Trade::Market(TradeResult{
-                            id: order.id.to_string(),
-                            trading_pair,
-                            price: match order.price{
-                                Some(trade_price) => match f64::from_str(&trade_price) {
-                                    Ok(price) => price,
-                                    Err(_) => price,
-                                },
-                                None => price,
+                    let order = client.create_market_order(order).await?; 
+                    Ok(Trade::Market(TradeResult{
+                        id: order.id.to_string(),
+                        trading_pair,
+                        price: match order.price{
+                            Some(trade_price) => match f64::from_str(&trade_price) {
+                                Ok(price) => price,
+                                Err(_) => price,
                             },
-                            amount,
-                        })),
-                        None => Err("Failed to cancel order by id".to_owned()),
-                    }
+                            None => price,
+                        },
+                        amount,
+                    }))
                 },
                 Target::Limit => {
                     let order = btc_sdk::models::typed::CreateLimitOrder::new(
@@ -67,15 +65,13 @@ where
                         side,
                         amount,
                         price);
-                    match client.create_limit_order(order).await {
-                        Some(order) => Ok(Trade::Limit(OrderWithId {
-                            id: order.id.to_string(),
-                            trading_pair,
-                            price,
-                            amount,
-                        })),
-                        None => Err("Failed to create limit order!".to_owned()),
-                    }
+                    let order = client.create_limit_order(order).await?; 
+                    Ok(Trade::Limit(OrderWithId {
+                        id: order.id.to_string(),
+                        trading_pair,
+                        price,
+                        amount,
+                    }))
                 },
             }
         };
@@ -86,13 +82,8 @@ where
         let client = self.private_client.clone();
         let id = id.to_owned();
         let future = async move {
-            match client.cancel_order_by_id(&id).await {
-                Some(order) => {
-                    log::debug!("Order canceled: {:#?}", order);
-                    Ok(())
-                },
-                None => Err("Failed to cancel order by id".to_owned()),
-            }
+            let _order = client.cancel_order_by_id(&id).await?;
+            Ok(())
         };
         Box::pin(future)
     }

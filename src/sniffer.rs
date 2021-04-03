@@ -40,15 +40,9 @@ where
             let converter = crate::TradingPairConverter::default();
             let symbol = converter.to_pair(trading_pair.clone());
             let side = from_agnostic_side(trading_pair.target.clone(), trading_pair.side.clone());
-            let orderbook = match client
+            let orderbook = client
                 .get_orderbook(Some(count as u64), Some(vec![symbol.clone()]))
-                .await
-            {
-                Some(orderbook) => orderbook,
-                None => {
-                    return Err("Failed to get orderbook".to_owned());
-                }
-            };
+                .await?;
             let page = match btc_sdk::models::typed::OrderBookPage::new(
                 symbol.clone(),
                 side,
@@ -81,34 +75,32 @@ where
             let converter = crate::TradingPairConverter::default();
             let symbol = converter.to_pair(trading_pair.clone());
             let side = from_agnostic_side(trading_pair.target.clone(), trading_pair.side.clone());
-            match client.get_active_orders(Some(symbol)).await {
-                Some(orders) => Ok(orders
-                    .into_iter()
-                    .filter_map(|order| {
-                        let sell_string = "sell".to_owned();
-                        let order_side = if sell_string == order.side {
-                            btc_sdk::base::Side::Sell
-                        } else {
-                            btc_sdk::base::Side::Buy
-                        };
-                        if order_side != side {
-                            return None;
-                        }
-                        Some(agnostic::order::OrderWithId {
-                            id: order.client_order_id,
-                            trading_pair: trading_pair.clone(),
-                            price: f64::from_str(
-                                &order
-                                    .price
-                                    .expect("Orderbook cannot return order without price"),
-                            )
-                            .unwrap(),
-                            amount: f64::from_str(&order.quantity).unwrap(),
-                        })
+            let orders = client.get_active_orders(Some(symbol)).await?;
+            Ok(orders
+                .into_iter()
+                .filter_map(|order| {
+                    let sell_string = "sell".to_owned();
+                    let order_side = if sell_string == order.side {
+                        btc_sdk::base::Side::Sell
+                    } else {
+                        btc_sdk::base::Side::Buy
+                    };
+                    if order_side != side {
+                        return None;
+                    }
+                    Some(agnostic::order::OrderWithId {
+                        id: order.client_order_id,
+                        trading_pair: trading_pair.clone(),
+                        price: f64::from_str(
+                            &order
+                                .price
+                                .expect("Orderbook cannot return order without price"),
+                        )
+                        .unwrap(),
+                        amount: f64::from_str(&order.quantity).unwrap(),
                     })
-                    .collect()),
-                None => Err("Failed to get active orders".to_owned()),
-            }
+                })
+                .collect())
         };
         Box::pin(future)
     }

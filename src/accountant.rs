@@ -34,10 +34,7 @@ where
         let private_client = self.private_client.clone();
         let converter = crate::TradingPairConverter::default();
         let future = async move {
-            let balance = match private_client.get_trading_balance().await {
-                Some(balance) => balance,
-                None => return Err("FAILED TO GET TRADING BALANCE".to_owned()),
-            };
+            let balance = private_client.get_trading_balance().await?;
             let coin_as_string = converter.from_agnostic_coin(coin.clone()).to_string();
             match balance.into_iter().find_map(|currency| {
                 if currency.currency != coin_as_string {
@@ -65,10 +62,7 @@ where
         let private_client = self.private_client.clone();
         let converter = crate::TradingPairConverter::default();
         let future = async move {
-            let balance = match private_client.get_trading_balance().await {
-                Some(balance) => balance,
-                None => return Err("FAILED TO GET TRADING BALANCE".to_owned()),
-            };
+            let balance = private_client.get_trading_balance().await?;
             let left_coin_as_string = converter.from_agnostic_coin(left.clone()).to_string();
             let left_coin = balance.iter().find_map(|currency| {
                 if currency.currency != left_coin_as_string {
