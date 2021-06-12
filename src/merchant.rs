@@ -3,6 +3,7 @@ pub struct Merchant<TConnector>
 where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static
 {
+    id: &'static str,
     accountant: Arc<crate::accountant::Accountant<TConnector>>,
     sniffer: Arc<crate::sniffer::Sniffer<TConnector>>,
     trader: Arc<crate::trader::Trader<TConnector>>,
@@ -13,6 +14,7 @@ where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static
 {
     pub fn new(
+        id: &'static str,
         client: std::sync::Arc<hyper::Client<TConnector>>,
         public_key: String,
         private_key: String,
@@ -34,6 +36,7 @@ where
                 private_client.clone()));
         let trader = Arc::new(crate::trader::Trader::new(private_client.clone()));
         Merchant {
+            id,
             accountant,
             sniffer,
             trader,
@@ -45,6 +48,10 @@ impl<TConnector> agnostic::merchant::Merchant for Merchant<TConnector>
 where
     TConnector: hyper::client::connect::Connect + Send + Sync + Clone + 'static
 {
+    fn id(&self) -> &'static str {
+        self.id
+    }
+
     fn accountant(&self) -> std::sync::Arc<dyn agnostic::market::Accountant> {
         self.accountant.clone()
     }
