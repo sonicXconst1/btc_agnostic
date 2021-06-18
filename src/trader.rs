@@ -47,7 +47,7 @@ where
                     use std::str::FromStr;
                     let order = client.create_market_order(order).await?; 
                     Ok(Trade::Market(TradeResult{
-                        id: order.id.to_string(),
+                        id: order.client_order_id,
                         trading_pair,
                         price: match order.price{
                             Some(trade_price) => match f64::from_str(&trade_price) {
@@ -67,7 +67,7 @@ where
                         price);
                     let order = client.create_limit_order(order).await?; 
                     Ok(Trade::Limit(OrderWithId {
-                        id: order.id.to_string(),
+                        id: order.client_order_id,
                         trading_pair,
                         price,
                         amount,
